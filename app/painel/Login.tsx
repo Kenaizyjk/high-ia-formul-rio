@@ -12,9 +12,16 @@ export default function Login() {
       <h1 className="text-2xl font-extrabold">Painel · Nível de IA</h1>
       <form action={acao} className="mt-6 space-y-4">
         <label className="block text-sm font-bold text-suave">
+          Usuário
+          <input
+            name="usuario" type="text" autoFocus required autoComplete="username" autoCapitalize="none" spellCheck={false}
+            className="mt-2 w-full rounded-2xl border border-borda bg-superficie px-5 py-4 text-lg text-texto focus:border-laranja focus:outline-none"
+          />
+        </label>
+        <label className="block text-sm font-bold text-suave">
           Senha
           <input
-            name="senha" type="password" autoFocus required autoComplete="current-password"
+            name="senha" type="password" required autoComplete="current-password"
             className="mt-2 w-full rounded-2xl border border-borda bg-superficie px-5 py-4 text-lg text-texto focus:border-laranja focus:outline-none"
           />
         </label>

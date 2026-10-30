@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { autenticado } from "@/lib/auth";
+import { sessaoAtual } from "@/lib/auth";
+import { nomeParaExibir } from "@/lib/sessao";
 import Link from "next/link";
 import { respostasVigentes, resumoGeral, type Resumo, type ResumoGeral } from "@/lib/db";
 import { DIMENSOES, NIVEIS, TRAVAS, type Dimensao } from "@/lib/questions";
@@ -35,7 +36,8 @@ function Ranking({ itens, total }: { itens: [string, number][]; total: number })
 }
 
 export default async function Painel() {
-  if (!(await autenticado())) return <Login />;
+  const usuario = await sessaoAtual();
+  if (!usuario) return <Login />;
 
   let linhas: LinhaP[] = [];
   let falha = "";
@@ -67,6 +69,7 @@ export default async function Painel() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/high-horizontal-branco.svg" alt="High Media" className="mb-3 h-6 w-auto" />
           <h1 className="text-3xl font-extrabold">Nível de IA do time</h1>
+          <p className="mt-1 text-sm text-suave">Entrou como <strong className="text-texto">{nomeParaExibir(usuario)}</strong></p>
         </div>
         <div className="flex gap-3">
           <a
