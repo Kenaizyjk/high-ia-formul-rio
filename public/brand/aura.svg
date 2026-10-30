@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900" viewBox="0 0 900 900">
+<defs><linearGradient id="g" gradientUnits="userSpaceOnUse" x1="120" y1="820" x2="820" y2="80"><stop offset="0" stop-color="#FFC9B8"/><stop offset="1" stop-color="#FF4C21"/></linearGradient><radialGradient id="rg" cx="560" cy="450" r="470" gradientUnits="userSpaceOnUse"><stop offset=".35" stop-color="#FFFFFF"/><stop offset="1" stop-color="#000000"/></radialGradient><mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="900" height="900"><rect width="900" height="900" fill="url(#rg)"/></mask></defs>
+<g mask="url(#m)">
+<polygon points="60,-50 62,-50 386.7,450 62,950 60,950 384.7,450" fill="#FF8E6E" fill-opacity="0.7"/>
+<polygon points="120,-50 260,-50 584.7,450 260,950 120,950 444.7,450" fill="url(#g)" fill-opacity="0.12"/>
+<polygon points="240,-50 380,-50 704.7,450 380,950 240,950 564.7,450" fill="url(#g)" fill-opacity="0.22"/>
+<polygon points="360,-50 500,-50 824.7,450 500,950 360,950 684.7,450" fill="url(#g)" fill-opacity="0.4"/>
+<polygon points="480,-50 620,-50 944.7,450 620,950 480,950 804.7,450" fill="url(#g)" fill-opacity="0.85"/>
+</g>
+</svg>
