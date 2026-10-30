@@ -3,7 +3,7 @@
 import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 import { EnvioSchema } from "@/lib/schema";
-import { pontuar, type Pontuacao } from "@/lib/questions";
+import { PERGUNTAS, pontuar, type Pontuacao } from "@/lib/questions";
 import { garantirTabela, sql } from "@/lib/db";
 
 const TEMPO_MINIMO_MS = 25_000; // são ~18 telas; menos que isso não é gente
@@ -21,8 +21,15 @@ function hashDoIp(ip: string): string {
 export async function enviarRespostas(bruto: unknown): Promise<Resultado> {
   const parsed = EnvioSchema.safeParse(bruto);
   if (!parsed.success) {
-    const msg = parsed.error.issues[0]?.message ?? "Algumas respostas estão incompletas.";
-    return { ok: false, erro: msg === "Required" ? "Algumas respostas estão incompletas." : msg };
+    const issue = parsed.error.issues[0];
+    const chave = String(issue?.path?.[1] ?? issue?.path?.[0] ?? "");
+    const pergunta = PERGUNTAS.find((p) => p.id === chave);
+    const erro = pergunta
+      ? `Falta responder: ${pergunta.titulo}`
+      : chave === "email"
+        ? "E-mail inválido."
+        : "Algumas respostas estão incompletas.";
+    return { ok: false, erro };
   }
   const e = parsed.data;
   const pontuacao = pontuar(e.respostas);

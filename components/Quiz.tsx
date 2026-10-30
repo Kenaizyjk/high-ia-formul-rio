@@ -146,6 +146,7 @@ export default function Quiz() {
   }, [nome, email, area, tempo, resp, honeypot]);
 
   const avancar = useCallback(() => {
+    if (avancando.current) clearTimeout(avancando.current); // evita avanço duplo com o automático
     if (!valido) return;
     if (i === PASSOS.length - 1) {
       void enviar();
