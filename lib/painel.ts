@@ -1,8 +1,9 @@
 import { DIMENSOES, type Dimensao } from "./questions.ts";
 
 export type LinhaP = {
+  id?: string;
+  suspeito?: boolean;
   nome: string;
-  email: string | null;
   area: string;
   tempo: string;
   respostas: Record<string, unknown>;
@@ -55,19 +56,19 @@ export function celulaCsv(valor: unknown): string {
 }
 
 export const COLUNAS_CSV = [
-  "Data", "Nome", "E-mail", "Área", "Tempo de High", "Nível", "Total",
+  "Data", "Nome", "Área", "Tempo de High", "Nível", "Total",
   "Uso", "Domínio", "Responsabilidade", "Visão",
   "Frequência", "Ferramentas", "Para que usa", "Entende de IA (1-5)", "Como pede", "Número da IA",
   "Alucinação", "Dados de cliente", "Privacidade das ferramentas", "Tempo economizado",
-  "Automação/GPT/agente", "Impacto em 12 meses (1-5)", "O que trava", "Tarefa que queria delegar", "Treinamento",
+  "Automação/GPT/agente", "Impacto em 12 meses (1-5)", "O que trava", "Tarefa que queria delegar", "Treinamento", "Suspeito",
 ];
 
 export function linhaCsv(l: LinhaP): string {
   const r = l.respostas;
   const data = new Date(l.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
   return [
-    data, l.nome, l.email, l.area, l.tempo, l.nivel, l.total, l.uso, l.dominio, l.responsabilidade, l.visao,
-    r.q1, r.q2, r.q3, r.q4, r.q5, r.q6, r.q7, r.q8, r.q9, r.q10, r.q11, r.q12, r.q13, r.q14, r.q15,
+    data, l.nome, l.area, l.tempo, l.nivel, l.total, l.uso, l.dominio, l.responsabilidade, l.visao,
+    r.q1, r.q2, r.q3, r.q4, r.q5, r.q6, r.q7, r.q8, r.q9, r.q10, r.q11, r.q12, r.q13, r.q14, r.q15, l.suspeito ? "sim" : "",
   ].map(celulaCsv).join(";");
 }
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { autenticado } from "@/lib/auth";
-import { respostasVigentes } from "@/lib/db";
+import Link from "next/link";
+import { respostasVigentes, resumoGeral, type Resumo, type ResumoGeral } from "@/lib/db";
 import { DIMENSOES, NIVEIS, TRAVAS, type Dimensao } from "@/lib/questions";
 import {
   contarMultipla,
@@ -11,26 +12,10 @@ import {
 } from "@/lib/painel";
 import Login from "./Login";
 import { sair } from "./actions";
+import { Barra, Bloco, ResumoGeralView } from "./ui";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Painel · Nível de IA | High Media", robots: { index: false } };
-
-function Barra({ pct, destaque = true }: { pct: number; destaque?: boolean }) {
-  return (
-    <div className="h-2.5 overflow-hidden rounded-full bg-borda" role="img" aria-label={`${pct}%`}>
-      <div className={`h-full rounded-full ${destaque ? "bg-laranja" : "bg-suave"}`} style={{ width: `${pct}%` }} />
-    </div>
-  );
-}
-
-function Bloco({ titulo, children }: { titulo: string; children: React.ReactNode }) {
-  return (
-    <section className="rounded-3xl border border-borda bg-superficie/80 p-5 sm:p-6">
-      <h2 className="mb-4 text-lg font-extrabold">{titulo}</h2>
-      {children}
-    </section>
-  );
-}
 
 function Ranking({ itens, total }: { itens: [string, number][]; total: number }) {
   if (itens.length === 0) return <p className="text-suave">Sem respostas ainda.</p>;
@@ -54,8 +39,10 @@ export default async function Painel() {
 
   let linhas: LinhaP[] = [];
   let falha = "";
+  let resumo: Resumo<ResumoGeral> | null = null;
   try {
     linhas = (await respostasVigentes()) as unknown as LinhaP[];
+    resumo = await resumoGeral();
   } catch (e) {
     console.error("painel: falha ao ler respostas", e instanceof Error ? e.message : e);
     falha = "Não consegui ler o banco agora. Recarregue a página.";
@@ -96,10 +83,12 @@ export default async function Painel() {
 
       {falha && <p role="alert" className="rounded-xl border border-laranja bg-laranja/10 px-4 py-3 font-semibold">{falha}</p>}
 
+      <ResumoGeralView r={resumo} />
+
       <div className="grid gap-5 md:grid-cols-3">
-        <Bloco titulo="Respostas">
+        <Bloco titulo="Pessoas que responderam">
           <p className="text-6xl font-extrabold text-laranja">{n}</p>
-          <p className="mt-1 text-sm text-suave">Uma por pessoa: se o mesmo e-mail reenviou, vale o mais recente.</p>
+          <p className="mt-1 text-sm text-suave">Uma linha por pessoa: se a mesma pessoa reenviou (mesmo nome e área), vale o envio mais recente.</p>
         </Bloco>
         <div className="md:col-span-2">
           <Bloco titulo="Distribuição por nível">
@@ -183,31 +172,38 @@ export default async function Painel() {
         </Bloco>
       </div>
 
-      <Bloco titulo="Todas as respostas">
+      <Bloco titulo="Pessoas">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-sm">
+          <table className="w-full min-w-[520px] text-left text-sm">
             <thead className="text-suave">
               <tr>
-                <th className="py-2 pr-3">Data</th><th className="px-3">Nome</th><th className="px-3">Área</th>
-                <th className="px-3">Nível</th><th className="px-3">Total</th>
-                {DIMENSOES.map((d) => <th key={d.id} className="px-3">{d.nome}</th>)}
-                <th className="px-3">Treino</th>
+                <th className="py-2 pr-3">Nome</th><th className="px-3">Área</th>
+                <th className="px-3">Nível</th><th className="px-3">Data</th><th className="px-3"><span className="sr-only">Perfil</span></th>
               </tr>
             </thead>
             <tbody>
-              {linhas.map((l, k) => (
-                <tr key={k} className="border-t border-borda">
-                  <td className="whitespace-nowrap py-2 pr-3">{fmt(l.created_at)}</td>
-                  <td className="px-3 font-semibold">{l.nome}</td>
+              {linhas.map((l) => (
+                <tr key={l.id} className="border-t border-borda">
+                  <td className="py-3 pr-3 font-semibold">
+                    {l.nome}
+                    {l.suspeito && (
+                      <span title="Campo-armadilha preenchido" className="ml-2 rounded-full border border-laranja px-2 py-0.5 text-xs font-bold text-laranja">
+                        suspeita
+                      </span>
+                    )}
+                  </td>
                   <td className="px-3">{l.area}</td>
-                  <td className="px-3">{l.nivel} · {NIVEIS[l.nivel as 1 | 2 | 3 | 4]?.nome}</td>
-                  <td className="px-3">{l.total}/33</td>
-                  {DIMENSOES.map((d) => <td key={d.id} className="px-3">{l[d.id]}/{d.max}</td>)}
-                  <td className="px-3">{String(l.respostas.q15 ?? "")}</td>
+                  <td className="px-3 whitespace-nowrap">{l.nivel} · {NIVEIS[l.nivel as 1 | 2 | 3 | 4]?.nome}</td>
+                  <td className="whitespace-nowrap px-3">{fmt(l.created_at)}</td>
+                  <td className="px-3">
+                    <Link href={`/painel/pessoa/${l.id}`} className="inline-flex min-h-[44px] items-center font-bold text-laranja">
+                      Ver perfil →
+                    </Link>
+                  </td>
                 </tr>
               ))}
               {linhas.length === 0 && (
-                <tr><td colSpan={10} className="py-6 text-center text-suave">Nenhuma resposta ainda.</td></tr>
+                <tr><td colSpan={5} className="py-6 text-center text-suave">Nenhuma resposta ainda.</td></tr>
               )}
             </tbody>
           </table>

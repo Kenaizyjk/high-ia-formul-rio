@@ -1,0 +1,18 @@
+{
+  "q1": "Com que frequência você usa IA no trabalho?",
+  "q2": "Quais ferramentas você já usou?",
+  "q3": "Para que você usa?",
+  "q4": "De 1 a 5, quanto você entende de IA?",
+  "q5": "Quando pede algo para a IA, normalmente você:",
+  "q6": "A IA te dá um número (ex.: “o CPM médio de moda é R$ 15”). O que você faz?",
+  "q7": "Você sabe o que é “alucinação” de IA?",
+  "q8": "Você colaria dados de um cliente (faturamento, planilha, conversas) numa IA?",
+  "q9": "Você sabe se as ferramentas que usa guardam ou treinam com o que você digita?",
+  "q10": "Quanto tempo a IA te economiza por semana hoje?",
+  "q11": "Você já criou alguma automação, GPT personalizado, Gem, projeto ou agente?",
+  "q12": "De 1 a 5, quanto a IA vai mudar o seu trabalho nos próximos 12 meses?",
+  "q13": "O que mais te trava para usar mais IA?",
+  "q14": "Qual tarefa do seu dia você mais gostaria que a IA fizesse por você?",
+  "q15": "Topa participar de um treinamento interno de IA?",
+  "nome": "Nome"
+}

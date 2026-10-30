@@ -1,0 +1,21 @@
+[Unit]
+Description=Resumos de IA do formulário Nível de IA (High Media)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=formia
+Group=formia
+EnvironmentFile=/etc/formulario-ia/db.env
+# flock -n: se a rodada anterior ainda estiver viva, esta sai sem sobrepor
+ExecStart=/usr/bin/flock -n /var/lib/formia/job.lock /opt/formulario-ia/venv/bin/python /opt/formulario-ia/formia_resumos.py
+TimeoutStartSec=1800
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/formia /var/log/formulario-ia.log
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true

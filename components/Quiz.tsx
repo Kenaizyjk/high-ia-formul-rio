@@ -3,17 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { enviarRespostas } from "@/app/actions";
-import {
-  AREAS,
-  DICAS,
-  DIMENSOES,
-  NIVEIS,
-  PERGUNTAS,
-  TEMPOS,
-  type Pergunta,
-  type Pontuacao,
-  type Respostas,
-} from "@/lib/questions";
+import { AREAS, PERGUNTAS, TEMPOS, type Pergunta, type Respostas } from "@/lib/questions";
+import { CAMPO_ARMADILHA } from "@/lib/schema";
 
 type Passo =
   | { tipo: "nome"; id: "nome"; bloco: string }
@@ -29,8 +20,6 @@ const PASSOS: Passo[] = [
 ];
 
 const BLOCOS = ["Sobre você", "Uso", "Domínio", "Responsabilidade", "Visão"];
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function Logo({ className = "h-8 w-auto self-start" }: { className?: string }) {
   // eslint-disable-next-line @next/next/no-img-element
@@ -89,17 +78,15 @@ function Cartao({
 }
 
 export default function Quiz() {
-  const [etapa, setEtapa] = useState<"capa" | "form" | "enviando" | "resultado">("capa");
+  const [etapa, setEtapa] = useState<"capa" | "form" | "enviando" | "fim">("capa");
   const [i, setI] = useState(0);
   const [dir, setDir] = useState(1);
   const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
   const [area, setArea] = useState("");
   const [tempo, setTempo] = useState("");
   const [resp, setResp] = useState<Respostas>({});
   const [honeypot, setHoneypot] = useState("");
   const [erro, setErro] = useState("");
-  const [resultado, setResultado] = useState<Pontuacao | null>(null);
   const iniciouEm = useRef(0);
   const avancando = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -108,7 +95,7 @@ export default function Quiz() {
   const valido = useMemo(() => {
     switch (passo.tipo) {
       case "nome":
-        return nome.trim().length >= 2 && (email.trim() === "" || EMAIL_RE.test(email.trim()));
+        return nome.trim().length >= 2;
       case "area":
         return area !== "";
       case "tempo":
@@ -122,28 +109,26 @@ export default function Quiz() {
         return typeof v === "string";
       }
     }
-  }, [passo, nome, email, area, tempo, resp]);
+  }, [passo, nome, area, tempo, resp]);
 
   const enviar = useCallback(async () => {
     setEtapa("enviando");
     setErro("");
     const r = await enviarRespostas({
       nome: nome.trim(),
-      email: email.trim(),
       area,
       tempo,
       respostas: resp,
-      empresa_site: honeypot,
+      [CAMPO_ARMADILHA]: honeypot,
       iniciouEm: iniciouEm.current,
     }).catch(() => ({ ok: false as const, erro: "Sem conexão. Confira a internet e tente de novo." }));
     if (r.ok) {
-      setResultado(r.pontuacao);
-      setEtapa("resultado");
+      setEtapa("fim");
     } else {
       setErro(r.erro);
       setEtapa("form");
     }
-  }, [nome, email, area, tempo, resp, honeypot]);
+  }, [nome, area, tempo, resp, honeypot]);
 
   const avancar = useCallback(() => {
     if (avancando.current) clearTimeout(avancando.current); // evita avanço duplo com o automático
@@ -214,7 +199,7 @@ export default function Quiz() {
 
   useEffect(() => () => { if (avancando.current) clearTimeout(avancando.current); }, []);
 
-  const progresso = etapa === "form" ? (i / PASSOS.length) * 100 : etapa === "resultado" ? 100 : 0;
+  const progresso = etapa === "form" ? (i / PASSOS.length) * 100 : etapa === "fim" ? 100 : 0;
   const blocoAtual = BLOCOS.indexOf(passo.bloco);
 
   if (etapa === "capa") {
@@ -227,7 +212,7 @@ export default function Quiz() {
             Qual é o seu <span className="text-laranja">nível de IA?</span>
           </h1>
           <p className="mt-6 max-w-md text-lg leading-relaxed text-suave">
-            3 minutos. Serve para a High planejar treinamentos e ferramentas para o time.
+            3 minutos. Responda com sinceridade, não existe resposta certa. Vamos usar isso para montar as próximas aulas de IA do time.
           </p>
           <div className="mt-10">
             <Botao
@@ -250,14 +235,14 @@ export default function Quiz() {
       <main className="grid min-h-dvh place-items-center px-6">
         <div role="status" className="text-center">
           <div className="mx-auto mb-5 h-10 w-10 animate-spin rounded-full border-4 border-borda border-t-laranja" />
-          <p className="text-lg font-semibold">Calculando o seu nível…</p>
+          <p className="text-lg font-semibold">Enviando as suas respostas…</p>
         </div>
       </main>
     );
   }
 
-  if (etapa === "resultado" && resultado) {
-    return <Resultado r={resultado} />;
+  if (etapa === "fim") {
+    return <Obrigado onVoltar={() => { setEtapa("capa"); setI(0); setNome(""); setArea(""); setTempo(""); setResp({}); setHoneypot(""); setErro(""); }} />;
   }
 
   return (
@@ -303,7 +288,6 @@ export default function Quiz() {
             <Tela
               passo={passo}
               nome={nome} setNome={setNome}
-              email={email} setEmail={setEmail}
               area={area} setArea={(v) => { setArea(v); avancarDepois(); }}
               tempo={tempo} setTempo={(v) => { setTempo(v); avancarDepois(); }}
               resp={resp}
@@ -325,7 +309,7 @@ export default function Quiz() {
       <footer className="mt-8 flex items-center justify-between gap-3">
         <Botao variante="fantasma" onClick={voltar}>Voltar</Botao>
         <Botao onClick={avancar} desabilitado={!valido}>
-          {ehUltimo ? "Ver meu nível" : "Continuar"}
+          {ehUltimo ? "Enviar respostas" : "Continuar"}
         </Botao>
       </footer>
       <p className="mt-4 hidden text-center text-xs text-suave sm:block">
@@ -350,7 +334,6 @@ const campo =
 function Tela(props: {
   passo: Passo;
   nome: string; setNome: (v: string) => void;
-  email: string; setEmail: (v: string) => void;
   area: string; setArea: (v: string) => void;
   tempo: string; setTempo: (v: string) => void;
   resp: Respostas; setResp: (id: string, v: string | string[] | number, auto: boolean) => void;
@@ -370,19 +353,13 @@ function Tela(props: {
               maxLength={80} autoComplete="name" placeholder="Seu nome" className={campo}
             />
           </label>
-          <label className="block text-sm font-bold text-suave">
-            E-mail da High <span className="font-normal">(opcional)</span>
-            <input
-              type="email" inputMode="email" value={props.email} onChange={(e) => props.setEmail(e.target.value)}
-              maxLength={120} autoComplete="email" placeholder="voce@highmedia.com.br" className={campo}
-            />
-          </label>
-          {/* honeypot: invisível para gente, tentador para robô */}
+          {/* Armadilha para robô. Nome, id e rótulo sem palavra que o autopreenchimento reconheça. */}
           <div aria-hidden="true" style={{ position: "absolute", left: "-9999px", height: 0, overflow: "hidden" }}>
-            <label>
-              Site da empresa
+            <label htmlFor={CAMPO_ARMADILHA}>
+              Deixe em branco
               <input
-                tabIndex={-1} autoComplete="off" name="empresa_site"
+                id={CAMPO_ARMADILHA} name={CAMPO_ARMADILHA} type="text" tabIndex={-1} autoComplete="off"
+                data-lpignore="true" data-1p-ignore="true" data-form-type="other"
                 value={props.honeypot} onChange={(e) => props.setHoneypot(e.target.value)}
               />
             </label>
@@ -488,65 +465,27 @@ function Tela(props: {
   );
 }
 
-function Resultado({ r }: { r: Pontuacao }) {
-  const nivel = NIVEIS[r.nivel];
-  const linhas = DIMENSOES.map((d) => ({ ...d, pontos: r.dimensoes[d.id], pct: Math.round((r.dimensoes[d.id] / d.max) * 100) }));
-  const maisFraca = linhas.reduce((a, b) => (b.pct < a.pct ? b : a));
+function Obrigado({ onVoltar }: { onVoltar: () => void }) {
   return (
-    <main className="mx-auto max-w-2xl px-6 pb-14 pt-6">
-      <Logo className="h-6 w-auto self-start" />
-      <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="mt-10">
-        <p className="text-sm font-bold uppercase tracking-[0.2em] text-laranja">Seu resultado</p>
-        <div className="mt-3 flex items-end gap-4">
-          <span className="text-8xl font-extrabold leading-none text-laranja" aria-hidden="true">{r.nivel}</span>
-          <h1 className="pb-2 text-4xl font-extrabold leading-tight sm:text-5xl">
-            <span className="sr-only">Nível {r.nivel}: </span>{nivel.nome}
-          </h1>
+    <main className="mx-auto flex min-h-dvh max-w-2xl flex-col justify-between px-6 py-8 sm:py-12">
+      <Logo />
+      <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+        <div className="mb-6 grid h-14 w-14 place-items-center rounded-full bg-laranja text-carvao" aria-hidden="true">
+          <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="3">
+            <path d="M5 12.5l4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </div>
-        <p className="mt-4 text-lg leading-relaxed text-suave">{nivel.descricao}</p>
-        <p className="mt-2 text-sm font-semibold text-suave">{r.total} de 33 pontos · nível {r.nivel} de 4</p>
-
-        <h2 className="mt-10 text-xl font-extrabold">Suas 4 dimensões</h2>
-        <ul className="mt-4 space-y-5">
-          {linhas.map((l, k) => (
-            <li key={l.id}>
-              <div className="mb-2 flex items-baseline justify-between">
-                <span className="font-bold">{l.nome}</span>
-                <span className="font-extrabold">{l.pct}%</span>
-              </div>
-              <div
-                className="h-3 overflow-hidden rounded-full bg-borda" role="img"
-                aria-label={`${l.nome}: ${l.pct}%`}
-              >
-                <motion.div
-                  className={`h-full rounded-full ${l.id === maisFraca.id ? "bg-suave" : "bg-laranja"}`}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${l.pct}%` }}
-                  transition={{ duration: 0.8, delay: 0.15 * k }}
-                />
-              </div>
-            </li>
-          ))}
-        </ul>
-
-        <div className="mt-10 rounded-3xl border border-borda bg-superficie/80 p-6">
-          <h2 className="text-xl font-extrabold">
-            Para evoluir em <span className="text-laranja">{maisFraca.nome}</span>
-          </h2>
-          <p className="mt-1 text-sm text-suave">Sua dimensão mais fraca hoje. Duas coisas para fazer esta semana:</p>
-          <ol className="mt-4 space-y-4">
-            {DICAS[maisFraca.id].map((d, k) => (
-              <li key={k} className="flex gap-4">
-                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-laranja text-sm font-extrabold text-carvao">
-                  {k + 1}
-                </span>
-                <span className="leading-relaxed">{d}</span>
-              </li>
-            ))}
-          </ol>
+        <h1 className="text-4xl font-extrabold leading-tight tracking-tight sm:text-6xl">
+          Obrigado por <span className="text-laranja">responder!</span>
+        </h1>
+        <p className="mt-6 max-w-md text-lg leading-relaxed text-suave">
+          Vamos usar as suas respostas para montar as próximas aulas de IA do time.
+        </p>
+        <div className="mt-10">
+          <Botao variante="fantasma" onClick={onVoltar}>Voltar ao início</Botao>
         </div>
-        <p className="mt-8 text-sm text-suave">Obrigado por responder. A gestão da High usa o conjunto das respostas para planejar o próximo passo do time.</p>
       </motion.section>
+      <p className="mt-10 text-sm text-suave">Suas respostas ficam só com a gestão da High.</p>
     </main>
   );
 }

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AREAS, FERRAMENTAS, PERGUNTAS, TEMPOS, TRAVAS, USOS, TREINAMENTO } from "./questions";
+import { AREAS, FERRAMENTAS, PERGUNTAS, TEMPOS, TRAVAS, USOS, TREINAMENTO } from "./questions.ts";
 
 const escala = z.number().int().min(1).max(5);
 
@@ -12,15 +12,12 @@ function opcoesUnica(id: string): [string, ...string[]] {
 const multipla = (lista: readonly string[], max: number) =>
   z.array(z.enum(lista as [string, ...string[]])).min(1).max(max);
 
+// Nome do campo-armadilha. Sem "site", "empresa", "email" ou "nome": o autopreenchimento
+// do navegador casa por palavra no name, id, rótulo e placeholder.
+export const CAMPO_ARMADILHA = "xq7k2m";
+
 export const EnvioSchema = z.object({
-  nome: z.string().trim().min(2, "Conta seu nome").max(80),
-  email: z
-    .string()
-    .trim()
-    .max(120)
-    .email("E-mail inválido")
-    .optional()
-    .or(z.literal("").transform(() => undefined)),
+  nome: z.string().trim().min(2).max(80),
   area: z.enum(AREAS),
   tempo: z.enum(TEMPOS),
   respostas: z.object({
@@ -40,10 +37,24 @@ export const EnvioSchema = z.object({
     q14: z.string().trim().max(600).optional().or(z.literal("").transform(() => undefined)),
     q15: z.enum(TREINAMENTO),
   }),
-  // honeypot: campo invisível que humano não preenche
-  empresa_site: z.string().max(0).optional().default(""),
+  // Armadilha: aceita qualquer texto e NUNCA gera erro. Se vier preenchida, a resposta é gravada como suspeita.
+  [CAMPO_ARMADILHA]: z.string().max(500).optional().default("").catch(""),
   // instante (ms epoch) em que a pessoa clicou em "Começar"
   iniciouEm: z.number().int().positive(),
 });
 
 export type Envio = z.infer<typeof EnvioSchema>;
+
+// Mensagem em português para o primeiro erro do zod. O detalhe técnico vai só para o log do servidor.
+export function mensagemDeErro(issue: { path: PropertyKey[] } | undefined): string {
+  const raiz = String(issue?.path?.[0] ?? "");
+  const sub = String(issue?.path?.[1] ?? "");
+  if (raiz === "respostas") {
+    const n = /^q(\d+)$/.exec(sub)?.[1];
+    if (n) return `Faltou responder a pergunta ${n}.`;
+  }
+  if (raiz === "nome") return "Faltou preencher o seu nome.";
+  if (raiz === "area") return "Faltou escolher a sua área.";
+  if (raiz === "tempo") return "Faltou escolher há quanto tempo você está na High.";
+  return "Algumas respostas estão incompletas. Volte e confira.";
+}
